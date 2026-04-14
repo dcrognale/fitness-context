@@ -79,7 +79,8 @@ fitness-web/
 │   │   ├── trainersService.js      # Trainers + trainerClients (RPCs admin)
 │   │   └── usersService.js         # Gestión de usuarios (customUsers)
 │   ├── hooks/
-│   │   └── useAuth.js              # Re-export de useAuth
+│   │   ├── useAuth.js              # Re-export de useAuth desde AuthContext
+│   │   └── useRole.js              # Expone role, isAdmin, isTrainer, isClient, can(roles[])
 │   └── theme/                      # Tokens de tema MUI
 └── supabase/
     ├── functions/                  # Edge Functions (si aplica)
@@ -96,7 +97,29 @@ fitness-web/
 - Expone: `{ user, session, profile, loading, login, logout, refreshProfile }`
 - `profile` = fila de `customUsers` (`id, displayName, isTrainer, role, phone, instagram, isEnabled`)
 - Usar `profile.role` para determinar permisos (`'admin'` | `'trainer'` | `'client'`)
-- **Nunca** pasar `profile` directamente a `RoleGuard`; el guard lo lee del contexto internamente.
+
+## Hook useRole
+
+- **Archivo:** `src/hooks/useRole.js`
+- Hook de conveniencia que consume `AuthContext` internamente y expone helpers de rol.
+- **Siempre usar `useRole` en lugar de leer `profile.role` directamente en los componentes.**
+
+```js
+const { role, loading, isAdmin, isTrainer, isClient, can } = useRole()
+
+// Ejemplos
+if (isAdmin) { ... }
+if (can(['admin', 'trainer'])) { ... }
+```
+
+| Propiedad | Tipo | Descripción |
+|---|---|---|
+| `role` | `string \| null` | Rol actual (`'admin'`, `'trainer'`, `'client'`) o `null` si carga |
+| `loading` | `boolean` | `true` mientras el perfil carga |
+| `isAdmin` | `boolean` | `role === 'admin'` |
+| `isTrainer` | `boolean` | `role === 'trainer'` |
+| `isClient` | `boolean` | `role === 'client'` |
+| `can(roles[])` | `boolean` | `true` si el rol actual está en el array |
 
 ## Rutas y Control de Acceso
 
@@ -111,6 +134,35 @@ fitness-web/
 | `/trainers` | `admin` | Gestión de trainers y asignación de clientes |
 | `/trainer/clients` | `trainer` | Lista de clientes del trainer |
 | `/trainer/clients/:clientId/routines` | `trainer` | Rutinas de un cliente específico |
+
+### RoleGuard
+
+- **Archivo:** `src/components/layout/RoleGuard.jsx`
+- Usa `useRole()` internamente (no recibe `profile` como prop).
+- Muestra `CircularProgress` mientras `loading === true` para evitar flashes de redirección.
+- Prop `redirectTo` (default: `'/dashboard'`) para controlar el destino si el rol no es permitido.
+
+```jsx
+<RoleGuard roles={['admin']}>
+  <AdminOnlyPage />
+</RoleGuard>
+
+<RoleGuard roles={['admin', 'trainer']} redirectTo="/dashboard">
+  <SharedPage />
+</RoleGuard>
+```
+
+### Sidebar — Navegación por rol
+
+El `Sidebar` usa `useRole()` para mostrar ítems diferenciados:
+
+| Rol | Ítems del menú |
+|---|---|
+| `admin` | Dashboard, Ejercicios, Usuarios, Trainers, Rutinas |
+| `trainer` | Dashboard, Mis Clientes, Ejercicios, Rutinas |
+| `client` | Dashboard, Ejercicios, Mis Rutinas |
+
+El footer del sidebar muestra un `Chip` con el rol del usuario (color: `error`=admin, `primary`=trainer, `success`=cliente).
 
 ## Tema Visual
 
