@@ -1,0 +1,14 @@
+{
+  "name": "fitness-context",
+  "description": "Contexto compartido para los proyectos fitness-app (mobile React Native/Expo) y fitness-web (panel admin React/Vite). Incluye skills con el esquema de BD Supabase, estructura de archivos, convenciones y patrones de cada proyecto.",
+  "version": "1.0.0",
+  "skills": [
+    "shared-supabase",
+    "fitness-app",
+    "fitness-web"
+  ],
+  "agents": [
+    "fitness-app-agent",
+    "fitness-web-agent"
+  ]
+}
