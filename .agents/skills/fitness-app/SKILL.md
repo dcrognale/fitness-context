@@ -100,7 +100,7 @@ _layout.tsx → RootLayoutNav
 | Pantalla | Archivo | Descripción |
 |---|---|---|
 | Home/Rutinas | `(tabs)/index.tsx` | Lista rutinas activas del usuario, pull-to-refresh |
-| Entrenamiento | `(tabs)/train.tsx` | Pantalla de entrenamiento activo con sets/reps/kg |
+| Entrenamiento | `(tabs)/train.tsx` | Pantalla de entrenamiento activo con métricas dinámicas (sets/reps/mts/cal) |
 | Ejercicios | `(tabs)/exercises.tsx` | Catálogo de ejercicios con filtros |
 | Descanso | `(tabs)/rest.tsx` | Temporizador de descanso |
 | Historial | `(tabs)/history.tsx` | Rutinas con status=`'Inactive'` ordenadas por fecha |

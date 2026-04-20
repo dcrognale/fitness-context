@@ -88,7 +88,9 @@ fitness-web/
         ├── 001_trainer_system.sql
         ├── 002_admin_rpc_functions.sql
         ├── 003_roles_system.sql
-        └── 004_fix_admin_rpcs_types.sql
+        ├── 004_fix_admin_rpcs_types.sql
+        ├── 005_exercise_measure_type.sql
+        └── 006_trainer_edit_exercises.sql
 ```
 
 ## Autenticación y Perfil
@@ -219,6 +221,7 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 - CRUD completo con filtros por nombre/músculo
 - Paginación server-side
 - Chips para músculo, equipment, level, beneficios
+- Tipo de medición (measure_type: Mts, Cal, Reps)
 - Preview video YouTube inline
 
 ### RoutinesPage
