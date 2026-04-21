@@ -49,7 +49,7 @@ fitness-web/
 │   ├── main.jsx                # Entry point
 │   ├── App.jsx                 # Router + providers raíz
 │   ├── context/
-│   │   ├── AuthContext.jsx     # Auth Supabase + perfil (customUsers)
+│   │   ├── AuthContext.jsx     # Auth Supabase + perfil (custom_users)
 │   │   └── ThemeContext.jsx    # Tema oscuro MUI (Bebas Neue + Barlow)
 │   ├── pages/
 │   │   ├── LoginPage.jsx
@@ -75,9 +75,9 @@ fitness-web/
 │   ├── services/
 │   │   ├── supabaseClient.js       # Cliente Supabase singleton (anon key)
 │   │   ├── exercisesService.js     # CRUD exercises
-│   │   ├── routinesService.js      # CRUD train + trainExercises + planner
-│   │   ├── trainersService.js      # Trainers + trainerClients (RPCs admin)
-│   │   └── usersService.js         # Gestión de usuarios (customUsers)
+│   │   ├── routinesService.js      # CRUD train + train_exercises + planner
+│   │   ├── trainersService.js      # Trainers + trainer_clients (RPCs admin)
+│   │   └── usersService.js         # Gestión de usuarios (custom_users)
 │   ├── hooks/
 │   │   ├── useAuth.js              # Re-export de useAuth desde AuthContext
 │   │   └── useRole.js              # Expone role, isAdmin, isTrainer, isClient, can(roles[])
@@ -90,14 +90,16 @@ fitness-web/
         ├── 003_roles_system.sql
         ├── 004_fix_admin_rpcs_types.sql
         ├── 005_exercise_measure_type.sql
-        └── 006_trainer_edit_exercises.sql
+        ├── 006_trainer_edit_exercises.sql
+        ├── 007_update_rpcs_for_renamed_tables.sql
+        └── 008_client_update_train_rls.sql
 ```
 
 ## Autenticación y Perfil
 
 - **Archivo:** `src/context/AuthContext.jsx`
 - Expone: `{ user, session, profile, loading, login, logout, refreshProfile }`
-- `profile` = fila de `customUsers` (`id, displayName, isTrainer, role, phone, instagram, isEnabled`)
+- `profile` = fila de `custom_users` (`id, displayName, isTrainer, role, phone, instagram, isEnabled`)
 - Usar `profile.role` para determinar permisos (`'admin'` | `'trainer'` | `'client'`)
 
 ## Hook useRole
@@ -186,10 +188,10 @@ getRoutineById(id)
 // CRUD
 createRoutine({ userId, name, status, days })
 updateRoutine(id, { userId, name, status, days })
-deleteRoutine(id)  // elimina trainExercises en cascada primero
+deleteRoutine(id)  // elimina train_exercises en cascada primero
 
 // Planner semanal
-getRoutinePlannerData(id)  // join con trainExerciseDetail
+getRoutinePlannerData(id)  // join con train_exercise_detail
 upsertExerciseIndication({ trainId, trainExerciseId, week, indication, status })
 ```
 
@@ -238,10 +240,10 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 - Vista semanal de una rutina
 - Permite al trainer ingresar `indication` por semana/ejercicio
 - `status` se fuerza a `'TO_DO'` al crear/actualizar indicaciones
-- Lee datos de `trainExerciseDetail` (progreso real del alumno)
+- Lee datos de `train_exercise_detail` (progreso real del alumno)
 
 ### UsersPage
-- CRUD de usuarios usando tabla `customUsers`
+- CRUD de usuarios usando tabla `custom_users`
 - Edición inline de `displayName` e `isEnabled`
 - Filtros y búsqueda
 
@@ -267,4 +269,4 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 >
 > ⚠️ **RoleGuard** usa `profile.role` del AuthContext. Si el perfil aún está cargando, no bloquear la navegación prematuramente.
 >
-> ⚠️ La tabla `trainerClients` tiene RLS: `trainerId = auth.uid()`. Si la query la hace un admin, debe ir por RPC.
+> ⚠️ La tabla `trainer_clients` tiene RLS: `trainerId = auth.uid()`. Si la query la hace un admin, debe ir por RPC.

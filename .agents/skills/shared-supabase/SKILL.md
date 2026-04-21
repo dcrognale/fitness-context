@@ -33,6 +33,7 @@ Ambas apps (`fitness-app` y `fitness-web`) se conectan al **mismo proyecto Supab
 | `benefits` | TEXT[] | |
 | `level` | TEXT | |
 | `video_id` | TEXT | ID de YouTube |
+| `measure_type` | VARCHAR | `'Reps'` \| `'Mts'` \| `'Cal'` (default `'Reps'`) |
 | `createdAt` | TIMESTAMPTZ | DEFAULT NOW() |
 
 ### `public.train` (Rutinas)
@@ -46,7 +47,7 @@ Ambas apps (`fitness-app` y `fitness-web`) se conectan al **mismo proyecto Supab
 | `days` | INTEGER | Número de días de la rutina |
 | `createdAt` | TIMESTAMPTZ | DEFAULT NOW() |
 
-### `public."trainExercises"`
+### `public.train_exercises`
 | Columna | Tipo | Notas |
 |---|---|---|
 | `id` | UUID PK | |
@@ -61,12 +62,12 @@ Ambas apps (`fitness-app` y `fitness-web`) se conectan al **mismo proyecto Supab
 | `indication` | TEXT | Indicación del trainer |
 | `observation` | TEXT | |
 
-### `public."trainExerciseDetail"` (Progreso semanal del alumno)
+### `public.train_exercise_detail` (Progreso semanal del alumno)
 | Columna | Tipo | Notas |
 |---|---|---|
 | `id` | UUID PK | |
 | `trainId` | UUID | FK → train(id) ON DELETE CASCADE |
-| `trainExerciseId` | UUID | FK → trainExercises(id) ON DELETE CASCADE |
+| `trainExerciseId` | UUID | FK → train_exercises(id) ON DELETE CASCADE |
 | `week` | VARCHAR(20) | `"Semana 1"`, `"Semana 2"`, etc. |
 | `setNumber` | INTEGER | NOT NULL DEFAULT 1 |
 | `kg` | NUMERIC(6,2) | |
@@ -78,7 +79,7 @@ Ambas apps (`fitness-app` y `fitness-web`) se conectan al **mismo proyecto Supab
 
 > **UNIQUE CONSTRAINT:** `(trainExerciseId, week, setNumber)`
 
-### `public.customUsers` (Perfil extendido de usuario)
+### `public.custom_users` (Perfil extendido de usuario)
 | Columna | Tipo | Notas |
 |---|---|---|
 | `id` | UUID PK | = auth.users.id |
@@ -90,12 +91,12 @@ Ambas apps (`fitness-app` y `fitness-web`) se conectan al **mismo proyecto Supab
 | `isEnabled` | BOOLEAN | |
 | `role` | TEXT | `'admin'` \| `'trainer'` \| `'client'` |
 
-### `public.trainerClients` (Relación trainer → cliente)
+### `public.trainer_clients` (Relación trainer → cliente)
 | Columna | Tipo | Notas |
 |---|---|---|
 | `id` | UUID PK | |
-| `trainerId` | UUID | FK → customUsers(id) |
-| `clientId` | UUID | FK → customUsers(id) |
+| `trainerId` | UUID | FK → custom_users(id) |
+| `clientId` | UUID | FK → custom_users(id) |
 | `createdAt` | TIMESTAMPTZ | |
 
 ---
@@ -104,7 +105,7 @@ Ambas apps (`fitness-app` y `fitness-web`) se conectan al **mismo proyecto Supab
 
 - **Regla de oro:** NUNCA usar `service_role` en el cliente browser o en la app mobile.
 - Las operaciones admin se exponen vía funciones RPC con `SECURITY DEFINER`: `admin_get_clients_by_trainer`, `admin_add_client`, `admin_remove_client`, `admin_list_trainers`, `admin_set_trainer_status`.
-- La tabla `trainerClients` usa RLS que filtra por `auth.uid() = trainerId` automáticamente — nunca pasar `trainerId` como query param.
+- La tabla `trainer_clients` usa RLS que filtra por `auth.uid() = trainerId` automáticamente — nunca pasar `trainerId` como query param.
 
 ---
 
@@ -116,7 +117,7 @@ Ambas apps (`fitness-app` y `fitness-web`) se conectan al **mismo proyecto Supab
 | `trainer` | Sus propios clientes y las rutinas de esos clientes |
 | `client` | Solo sus propias rutinas |
 
-El rol se almacena en `customUsers.role` y se carga en el `AuthContext` de cada app como `profile.role`.
+El rol se almacena en `custom_users.role` y se carga en el `AuthContext` de cada app como `profile.role`.
 
 ---
 
@@ -126,9 +127,9 @@ El rol se almacena en `customUsers.role` y se carga en el `AuthContext` de cada 
 Siempre hacer `maybeSingle()` + update si existe o insert si no. Ver `routinesService.js → upsertExerciseIndication()`.
 
 ### Naming conventions
-- Tablas: `camelCase` entre comillas dobles cuando aplica (`"trainExercises"`, `"trainExerciseDetail"`, `"customUsers"`)
-- Columnas FK: `camelCase` (`userId`, `trainId`, `exerciseId`)
-- El campo `status` de `trainExerciseDetail` SIEMPRE debe ser `'TO_DO'` al crear desde el panel web.
+- Tablas: `snake_case` para nuevos nombres de tablas (`train_exercises`, `train_exercise_detail`, `trainer_clients`, `custom_users`, `history_exercises`)
+- Columnas FK: `camelCase` por retrocompatibilidad (`userId`, `trainId`, `exerciseId`)
+- El campo `status` de `train_exercise_detail` SIEMPRE debe ser `'TO_DO'` al crear desde el panel web.
 
 ### Supabase client singleton
 Ambos proyectos crean un único cliente con `createClient(url, anonKey)`. No crear múltiples instancias.

@@ -127,7 +127,7 @@ Estado global del entrenamiento activo en progreso:
 ## Servicio de Base de Datos
 
 - **Archivo único:** `services/databaseService.ts`
-- Contiene TODAS las queries: ejercicios, rutinas, `trainExerciseDetail`, historial, etc.
+- Contiene TODAS las queries: ejercicios, rutinas, `train_exercise_detail`, historial, etc.
 - Siempre importar desde este archivo, no crear nuevos service files en la app mobile.
 
 ## Variables de Entorno
