@@ -92,7 +92,8 @@ fitness-web/
         ├── 005_exercise_measure_type.sql
         ├── 006_trainer_edit_exercises.sql
         ├── 007_update_rpcs_for_renamed_tables.sql
-        └── 008_client_update_train_rls.sql
+        ├── 008_client_update_train_rls.sql
+        └── 009_warmup_field.sql
 ```
 
 ## Autenticación y Perfil
@@ -220,10 +221,11 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 ## Funcionalidades Detalladas
 
 ### ExercisesPage
-- CRUD completo con filtros por nombre/músculo
+- CRUD completo con filtros por nombre/músculo (crear/editar/eliminar **solo admin**)
 - Paginación server-side
 - Chips para músculo, equipment, level, beneficios
-- Tipo de medición (measure_type: Mts, Cal, Reps)
+- Columna "Medición" con chip coloreado (`Reps` verde, `Mts` azul, `Cal` naranja)
+- Tipo de medición configurable en `ExerciseFormModal` (measure_type: Mts, Cal, Reps)
 - Preview video YouTube inline
 
 ### RoutinesPage
@@ -235,6 +237,9 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 - Editor de rutinas (`RoutineEditor.jsx`) con drag & drop para reordenar ejercicios
 - Soporte multi-día (`day: "Día 1"`, `"Día 2"`, etc.)
 - Supersets (`superset_group` integer)
+- **Warm-Up por día:** Bloque de texto libre con auto-resize textarea, botón "Agregar Warm Up" y confirmación al descartar
+- **Inputs de medición:** Sets (1 dígito), Reps (2 dígitos) para ejercicios tipo Reps; campo único de 4 dígitos para Mts/Cal
+- Al editar rutina existente, se cargan los datos de warm-up desde filas marcadoras (`exerciseId = NULL`)
 
 ### RoutinePlannerPage
 - Vista semanal de una rutina
@@ -270,3 +275,7 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 > ⚠️ **RoleGuard** usa `profile.role` del AuthContext. Si el perfil aún está cargando, no bloquear la navegación prematuramente.
 >
 > ⚠️ La tabla `trainer_clients` tiene RLS: `trainerId = auth.uid()`. Si la query la hace un admin, debe ir por RPC.
+>
+> ⚠️ **Warm-up:** Al guardar rutinas, el warm-up de cada día se inserta como fila marcadora en `train_exercises` con `exerciseId = null` y `warm_up = <texto>`. Al cargar para edición, separar estas filas de los ejercicios reales.
+>
+> ⚠️ **Servicios:** Todas las tablas usan nombres `snake_case` (`train_exercises`, `train_exercise_detail`, `history_exercises`). Los nombres viejos en `camelCase` fueron eliminados.

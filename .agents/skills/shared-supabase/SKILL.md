@@ -52,7 +52,7 @@ Ambas apps (`fitness-app` y `fitness-web`) se conectan al **mismo proyecto Supab
 |---|---|---|
 | `id` | UUID PK | |
 | `trainId` | UUID | FK → train(id) ON DELETE CASCADE |
-| `exerciseId` | UUID | FK → exercises(id) ON DELETE CASCADE |
+| `exerciseId` | UUID | FK → exercises(id) ON DELETE CASCADE. **NULLABLE** (NULL para filas marcadoras de warm-up) |
 | `sets` | INTEGER | |
 | `reps` | INTEGER | |
 | `weight` | VARCHAR(50) | |
@@ -61,6 +61,9 @@ Ambas apps (`fitness-app` y `fitness-web`) se conectan al **mismo proyecto Supab
 | `day` | VARCHAR | `"Día 1"`, `"Día 2"`, etc. |
 | `indication` | TEXT | Indicación del trainer |
 | `observation` | TEXT | |
+| `warm_up` | TEXT | Texto libre de warm-up. Solo se usa en registros con `exerciseId = NULL` |
+
+> **CHECK CONSTRAINT `chk_exercise_or_warmup`:** `exerciseId IS NOT NULL OR (warm_up IS NOT NULL AND warm_up <> '')`. Garantiza que `exerciseId` sea NULL solo cuando el registro es un marcador de warm-up con texto.
 
 ### `public.train_exercise_detail` (Progreso semanal del alumno)
 | Columna | Tipo | Notas |
@@ -125,6 +128,9 @@ El rol se almacena en `custom_users.role` y se carga en el `AuthContext` de cada
 
 ### Upsert de detalle semanal
 Siempre hacer `maybeSingle()` + update si existe o insert si no. Ver `routinesService.js → upsertExerciseIndication()`.
+
+### Warm-Up por día
+El warm-up de cada día se almacena como una **fila marcadora** en `train_exercises` con `exerciseId = NULL` y `warm_up = <texto>`. Al leer ejercicios de una rutina, **siempre filtrar/separar** estas filas marcadoras de los ejercicios reales. Ver `databaseService.ts → getActiveRoutine()` y `RoutinesPage.jsx → handleEdit()`.
 
 ### Naming conventions
 - Tablas: `snake_case` para nuevos nombres de tablas (`train_exercises`, `train_exercise_detail`, `trainer_clients`, `custom_users`, `history_exercises`)

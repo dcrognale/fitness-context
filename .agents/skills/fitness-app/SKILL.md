@@ -100,7 +100,7 @@ _layout.tsx → RootLayoutNav
 | Pantalla | Archivo | Descripción |
 |---|---|---|
 | Home/Rutinas | `(tabs)/index.tsx` | Lista rutinas activas del usuario, pull-to-refresh |
-| Entrenamiento | `(tabs)/train.tsx` | Pantalla de entrenamiento activo con métricas dinámicas (sets/reps/mts/cal) |
+| Entrenamiento | `(tabs)/train.tsx` | Pantalla de entrenamiento activo con métricas dinámicas (sets/reps/mts/cal), warm-up card read-only |
 | Ejercicios | `(tabs)/exercises.tsx` | Catálogo de ejercicios con filtros |
 | Descanso | `(tabs)/rest.tsx` | Temporizador de descanso |
 | Historial | `(tabs)/history.tsx` | Rutinas con status=`'Inactive'` ordenadas por fecha |
@@ -128,6 +128,9 @@ Estado global del entrenamiento activo en progreso:
 
 - **Archivo único:** `services/databaseService.ts`
 - Contiene TODAS las queries: ejercicios, rutinas, `train_exercise_detail`, historial, etc.
+- Usa nombres de tablas en `snake_case`: `train_exercises`, `train_exercise_detail`, `history_exercises`
+- **Warm-up:** `getActiveRoutine()` retorna filas marcadoras de warm-up (`exerciseId = NULL`, `warm_up = <texto>`). El componente `train.tsx` las separa de los ejercicios reales antes de renderizar.
+- **Progreso:** `getRoutineProgress()` excluye filas marcadoras de warm-up con `.not('exerciseId', 'is', null)`.
 - Siempre importar desde este archivo, no crear nuevos service files en la app mobile.
 
 ## Variables de Entorno
@@ -153,6 +156,8 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 > 
 > ⚠️ **`expo-secure-store`** es el storage de Supabase. No usar `AsyncStorage` para tokens de auth.
 >
-> ⚠️ El campo `status` de rutina es `'active'` (activa) o `'Inactive'` (terminada/historial). Historial filtra por `status = 'Inactive'`.
+> ⚠️ El campo `status` de rutina es `'active'` (activa) o `'Inactiva'` (terminada/historial). Historial filtra por `status = 'Inactiva'`.
 >
 > ⚠️ No usar `service_role` key en ningún punto del cliente mobile.
+>
+> ⚠️ **Warm-up:** Las filas de warm-up en `train_exercises` tienen `exerciseId = NULL`. Siempre filtrarlas de la lista de ejercicios reales y no incluirlas en el tracking de progreso.
