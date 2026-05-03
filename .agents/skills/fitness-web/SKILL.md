@@ -68,6 +68,8 @@ fitness-web/
 │   │   │   ├── Sidebar.jsx         # Menú lateral con items por rol
 │   │   │   ├── PrivateRoute.jsx    # Redirige a /login si no autenticado
 │   │   │   └── RoleGuard.jsx       # Bloquea rutas por rol
+│   │   ├── auth/
+│   │   │   └── ForcePasswordChangeModal.jsx  # Modal bloqueante: cambio password primer login
 │   │   ├── exercises/
 │   │   │   └── ExerciseFormModal.jsx
 │   │   └── routines/
@@ -83,7 +85,9 @@ fitness-web/
 │   │   └── useRole.js              # Expone role, isAdmin, isTrainer, isClient, can(roles[])
 │   └── theme/                      # Tokens de tema MUI
 └── supabase/
-    ├── functions/                  # Edge Functions (si aplica)
+    ├── functions/
+    │   └── invite-user/        # Edge Function: invita usuario por email
+    │   └── create-client/      # Edge Function: crea auth.users + custom_users + trainer_clients (password '1234')
     └── migrations/
         ├── 001_trainer_system.sql
         ├── 002_admin_rpc_functions.sql
@@ -93,15 +97,20 @@ fitness-web/
         ├── 006_trainer_edit_exercises.sql
         ├── 007_update_rpcs_for_renamed_tables.sql
         ├── 008_client_update_train_rls.sql
-        └── 009_warmup_field.sql
+        ├── 009_warmup_field.sql
+        ├── 010_trainer_client_crud_rls.sql  # RPCs: trainer_update_client, trainer_disable_client
+        ├── 011_create_client_transaction.sql
+        ├── 012_fix_client_transaction.sql
+        └── 013_must_change_password.sql     # Columna mustChangePassword + RPC mark_password_changed()
 ```
 
 ## Autenticación y Perfil
 
 - **Archivo:** `src/context/AuthContext.jsx`
 - Expone: `{ user, session, profile, loading, login, logout, refreshProfile }`
-- `profile` = fila de `custom_users` (`id, displayName, isTrainer, role, phone, instagram, isEnabled`)
+- `profile` = fila de `custom_users` (`id, displayName, isTrainer, role, phone, instagram, isEnabled, mustChangePassword`)
 - Usar `profile.role` para determinar permisos (`'admin'` | `'trainer'` | `'client'`)
+- `profile.mustChangePassword` → `true` si el usuario debe cambiar su password (primer login)
 
 ## Hook useRole
 
@@ -131,7 +140,7 @@ if (can(['admin', 'trainer'])) { ... }
 | Ruta | Protección | Descripción |
 |---|---|---|
 | `/login` | Pública | Login con email + password |
-| `/dashboard` | Todos los roles | Estadísticas generales |
+| `/dashboard` | Todos los roles | Estadísticas generales y Progress Dashboard para trainers |
 | `/exercises` | Todos los roles | Catálogo de ejercicios (CRUD) |
 | `/routines` | Todos los roles | Rutinas (vista filtrada por rol) |
 | `/routines/plan/:id` | Todos los roles | Editor de planificación semanal |
@@ -201,6 +210,11 @@ upsertExerciseIndication({ trainId, trainExerciseId, week, indication, status })
 // Trainer: sus propios clientes (RLS automática, sin pasar trainerId)
 getMyClients()
 
+// Trainer: CRUD de sus propios clientes
+createClient({ email, displayName, phone, instagram }, trainerId) // Edge Function 'create-client'
+updateClient(clientId, { displayName, phone, instagram })          // rpc: trainer_update_client
+disableClient(clientId)                                            // rpc: trainer_disable_client
+
 // Admin: operaciones solo vía RPC (SECURITY DEFINER)
 getClientsByTrainer(trainerId)   // rpc: admin_get_clients_by_trainer
 addClient(trainerId, clientId)   // rpc: admin_add_client
@@ -220,6 +234,9 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 
 ## Funcionalidades Detalladas
 
+### DashboardPage
+- Para `trainer`: Incluye un `ClientProgress` (Progress Dashboard) con summary cards (Total Clientes, Activos, Inactivos) y una lista filtrable de clientes con búsqueda por `display_name`.
+
 ### ExercisesPage
 - CRUD completo con filtros por nombre/músculo (crear/editar/eliminar **solo admin**)
 - Paginación server-side
@@ -234,7 +251,7 @@ VITE_SUPABASE_ANON_KEY=eyJ...
   - `trainer`: ve solo rutinas de sus clientes asignados
   - `client`: ve solo sus propias rutinas
 - Filtros por estado, búsqueda por nombre
-- Editor de rutinas (`RoutineEditor.jsx`) con drag & drop para reordenar ejercicios
+- Editor de rutinas (`RoutineEditor.jsx`) con drag & drop para reordenar ejercicios. Campo "Nombre de Rutina" es obligatorio con validación client-side.
 - Soporte multi-día (`day: "Día 1"`, `"Día 2"`, etc.)
 - Supersets (`superset_group` integer)
 - **Warm-Up por día:** Bloque de texto libre con auto-resize textarea, botón "Agregar Warm Up" y confirmación al descartar
@@ -252,10 +269,15 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 - Edición inline de `displayName` e `isEnabled`
 - Filtros y búsqueda
 
-### TrainersPage (Admin)
-- Lista todos los usuarios con `isTrainer = true`
-- Permite asignar/desasignar clientes a trainers
-- Usa RPCs admin para todas las operaciones
+### TrainerClientsPage (Trainer)
+- Lista clientes propios del trainer (filtrado por RLS automática)
+- Botón "Agregar Cliente" (arriba derecha) que abre modal de creación
+- Columna "Acciones" con botón "Editar" (abre modal en modo edición)
+- **Modal CRUD:**
+  - Modo crear: campos displayName*, email*, phone*, instagram (opcional). Valida email regex y vacios. Llama a Edge Function `create-client`.
+  - Modo editar: mismos campos, email bloqueado (no editable), botón "Desactivar" (con diálogo de confirmación). Llama al RPC `trainer_update_client` que maneja valores nulos correctamente.
+  - Auto-refresh de tabla tras cada operación exitosa
+- Filtros: búsqueda por nombre/email/instagram + selector de estado (Activo/Inactivo)
 
 ## Convenciones de Código
 
@@ -279,3 +301,5 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 > ⚠️ **Warm-up:** Al guardar rutinas, el warm-up de cada día se inserta como fila marcadora en `train_exercises` con `exerciseId = null` y `warm_up = <texto>`. Al cargar para edición, separar estas filas de los ejercicios reales.
 >
 > ⚠️ **Servicios:** Todas las tablas usan nombres `snake_case` (`train_exercises`, `train_exercise_detail`, `history_exercises`). Los nombres viejos en `camelCase` fueron eliminados.
+>
+> ⚠️ **Primer login:** Los clientes creados con `admin_create_client_transactional` tienen password `"1234"` y `mustChangePassword = true`. El `ForcePasswordChangeModal` en `MainLayout` bloquea el uso de la app hasta que cambien su password. Usa `supabase.auth.updateUser()` + RPC `mark_password_changed()`.
