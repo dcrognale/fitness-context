@@ -76,7 +76,7 @@ fitness-web/
 │   │       └── RoutineEditor.jsx   # Drawer con DnD para editar rutinas
 │   ├── services/
 │   │   ├── supabaseClient.js       # Cliente Supabase singleton (anon key)
-│   │   ├── exercisesService.js     # CRUD exercises
+│   │   ├── exercisesService.js     # CRUD exercises (soporta trainer_id) + getMuscles()
 │   │   ├── routinesService.js      # CRUD train + train_exercises + planner
 │   │   ├── trainersService.js      # Trainers + trainer_clients (RPCs admin)
 │   │   └── usersService.js         # Gestión de usuarios (custom_users)
@@ -101,7 +101,11 @@ fitness-web/
         ├── 010_trainer_client_crud_rls.sql  # RPCs: trainer_update_client, trainer_disable_client
         ├── 011_create_client_transaction.sql
         ├── 012_fix_client_transaction.sql
-        └── 013_must_change_password.sql     # Columna mustChangePassword + RPC mark_password_changed()
+        ├── 013_must_change_password.sql     # Columna mustChangePassword + RPC mark_password_changed()
+        ├── 014_fix_trainer_update_client.sql # Fix COALESCE en update client
+        ├── 015_exercises_per_trainer.sql   # Ownership de ejercicios + RLS
+        ├── 016_muscles_table.sql           # Tabla muscles (Pecho, Espalda, etc.)
+        └── 017_replace_muscle_with_muscle_id.sql # FK exercises -> muscles
 ```
 
 ## Autenticación y Perfil
@@ -212,7 +216,7 @@ getMyClients()
 
 // Trainer: CRUD de sus propios clientes
 createClient({ email, displayName, phone, instagram }, trainerId) // Edge Function 'create-client'
-updateClient(clientId, { displayName, phone, instagram })          // rpc: trainer_update_client
+updateClient(clientId, { displayName, phone, instagram })          // rpc: trainer_update_client (fix v014: sobreescribe nulos)
 disableClient(clientId)                                            // rpc: trainer_disable_client
 
 // Admin: operaciones solo vía RPC (SECURITY DEFINER)
@@ -238,11 +242,12 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 - Para `trainer`: Incluye un `ClientProgress` (Progress Dashboard) con summary cards (Total Clientes, Activos, Inactivos) y una lista filtrable de clientes con búsqueda por `display_name`.
 
 ### ExercisesPage
-- CRUD completo con filtros por nombre/músculo (crear/editar/eliminar **solo admin**)
+- CRUD completo con filtros por nombre/músculo (crear/editar/eliminar **solo admin** para globales, **trainer** para los suyos)
 - Paginación server-side
-- Chips para músculo, equipment, level, beneficios
+- Chips para músculo (via `muscles` table), equipment, level, beneficios
 - Columna "Medición" con chip coloreado (`Reps` verde, `Mts` azul, `Cal` naranja)
 - Tipo de medición configurable en `ExerciseFormModal` (measure_type: Mts, Cal, Reps)
+- **Ownership:** Los trainers solo pueden ver y editar ejercicios que ellos mismos crearon (`trainer_id`). Los admins ven todo.
 - Preview video YouTube inline
 
 ### RoutinesPage
@@ -252,7 +257,8 @@ VITE_SUPABASE_ANON_KEY=eyJ...
   - `client`: ve solo sus propias rutinas
 - Filtros por estado, búsqueda por nombre
 - Editor de rutinas (`RoutineEditor.jsx`) con drag & drop para reordenar ejercicios. Campo "Nombre de Rutina" es obligatorio con validación client-side.
-- Soporte multi-día (`day: "Día 1"`, `"Día 2"`, etc.)
+- Soporte multi-día (`day: "Día 1"`, `"Día 2"`, etc.) con nombres personalizados (`day_name`).
+- **Normalización de Músculos:** Los ejercicios ahora usan `muscle_id` (FK a la tabla `muscles`). El editor carga la lista de músculos vía `getMuscles()`.
 - Supersets (`superset_group` integer)
 - **Warm-Up por día:** Bloque de texto libre con auto-resize textarea, botón "Agregar Warm Up" y confirmación al descartar
 - **Inputs de medición:** Sets (1 dígito), Reps (2 dígitos) para ejercicios tipo Reps; campo único de 4 dígitos para Mts/Cal

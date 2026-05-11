@@ -128,7 +128,8 @@ Estado global del entrenamiento activo en progreso:
 
 - **Archivo único:** `services/databaseService.ts`
 - Contiene TODAS las queries: ejercicios, rutinas, `train_exercise_detail`, historial, etc.
-- Usa nombres de tablas en `snake_case`: `train_exercises`, `train_exercise_detail`, `history_exercises`
+- Usa nombres de tablas en `snake_case`: `train_exercises`, `train_exercise_detail`, `history_exercises`, `muscles`.
+- **Músculos:** Los ejercicios usan `muscle_id` (FK → `muscles`).
 - **Warm-up:** `getActiveRoutine()` retorna filas marcadoras de warm-up (`exerciseId = NULL`, `warm_up = <texto>`). El componente `train.tsx` las separa de los ejercicios reales antes de renderizar.
 - **Progreso:** `getRoutineProgress()` excluye filas marcadoras de warm-up con `.not('exerciseId', 'is', null)`.
 - Siempre importar desde este archivo, no crear nuevos service files en la app mobile.

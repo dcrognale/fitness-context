@@ -26,7 +26,8 @@ Ambas apps (`fitness-app` y `fitness-web`) se conectan al **mismo proyecto Supab
 |---|---|---|
 | `id` | UUID PK | `uuid_generate_v4()` |
 | `name` | VARCHAR(255) | NOT NULL |
-| `muscle` | VARCHAR(100) | NOT NULL |
+| `muscle_id` | UUID | FK → muscles(id). **NOT NULL** |
+| `trainer_id` | UUID | FK → custom_users(id). NULL para globales. |
 | `equipment` | VARCHAR(100) | NOT NULL |
 | `description` | TEXT | |
 | `secondary_muscles` | TEXT[] | |
@@ -35,6 +36,13 @@ Ambas apps (`fitness-app` y `fitness-web`) se conectan al **mismo proyecto Supab
 | `video_id` | TEXT | ID de YouTube |
 | `measure_type` | VARCHAR | `'Reps'` \| `'Mts'` \| `'Cal'` (default `'Reps'`) |
 | `createdAt` | TIMESTAMPTZ | DEFAULT NOW() |
+
+### `public.muscles`
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | UUID PK | |
+| `name` | VARCHAR(255) | NOT NULL UNIQUE |
+| `created_at` | TIMESTAMPTZ | |
 
 ### `public.train` (Rutinas)
 | Columna | Tipo | Notas |
@@ -58,7 +66,8 @@ Ambas apps (`fitness-app` y `fitness-web`) se conectan al **mismo proyecto Supab
 | `weight` | VARCHAR(50) | |
 | `superset_group` | INTEGER | Agrupa supersets |
 | `position` | INTEGER | Orden dentro del día |
-| `day` | VARCHAR | `"Día 1"`, `"Día 2"`, etc. |
+| `day` | VARCHAR | `"Día 1"`, `"Día 2"`, etc. (Día relativo) |
+| `day_name` | VARCHAR | Nombre personalizado del día |
 | `indication` | TEXT | Indicación del trainer |
 | `observation` | TEXT | |
 | `warm_up` | TEXT | Texto libre de warm-up. Solo se usa en registros con `exerciseId = NULL` |
@@ -109,6 +118,7 @@ Ambas apps (`fitness-app` y `fitness-web`) se conectan al **mismo proyecto Supab
 - **Regla de oro:** NUNCA usar `service_role` en el cliente browser o en la app mobile.
 - Las operaciones admin se exponen vía funciones RPC con `SECURITY DEFINER`: `admin_get_clients_by_trainer`, `admin_add_client`, `admin_remove_client`, `admin_list_trainers`, `admin_set_trainer_status`.
 - La tabla `trainer_clients` usa RLS que filtra por `auth.uid() = trainerId` automáticamente — nunca pasar `trainerId` como query param.
+- **Ejercicios (exercises):** Tienen propiedad (trainer_id). Admin ve todos. Trainer ve los suyos. Clientes ven los de su trainer asignado.
 
 ---
 
