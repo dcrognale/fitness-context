@@ -62,7 +62,7 @@ Ambas apps (`fitness-app` y `fitness-web`) se conectan al **mismo proyecto Supab
 | `trainId` | UUID | FK → train(id) ON DELETE CASCADE |
 | `exerciseId` | UUID | FK → exercises(id) ON DELETE CASCADE. **NULLABLE** (NULL para filas marcadoras de warm-up) |
 | `sets` | INTEGER | |
-| `reps` | INTEGER | |
+| `reps` | VARCHAR(50) | **Prescripción del trainer.** Formato `"N"` = reps uniformes (ej: `"12"`). Formato `"N1-N2-N3"` = reps progresivas (ej: `"15-12-10-8"`), una por serie. Solo aplica a `measure_type = 'Reps'`. |
 | `weight` | VARCHAR(50) | |
 | `superset_group` | INTEGER | Agrupa supersets |
 | `position` | INTEGER | Orden dentro del día |
@@ -141,6 +141,14 @@ Siempre hacer `maybeSingle()` + update si existe o insert si no. Ver `routinesSe
 
 ### Warm-Up por día
 El warm-up de cada día se almacena como una **fila marcadora** en `train_exercises` con `exerciseId = NULL` y `warm_up = <texto>`. Al leer ejercicios de una rutina, **siempre filtrar/separar** estas filas marcadoras de los ejercicios reales. Ver `databaseService.ts → getActiveRoutine()` y `RoutinesPage.jsx → handleEdit()`.
+
+### Repeticiones Progresivas
+El campo `train_exercises.reps` (ahora `VARCHAR(50)`) soporta dos formatos:
+- `"12"` → Reps uniformes: mismo valor para todas las series
+- `"15-12-10-8"` → Reps progresivas: una cifra por serie, separadas por guión
+
+La serialización/deserialización ocurre en `RoutineEditor.jsx` (`serializeReps` / `deserializeReps`).  
+El campo `reps` de `train_exercise_detail` **permanece como INTEGER** (progreso real ejecutado por serie).
 
 ### Naming conventions
 - Tablas: `snake_case` para nuevos nombres de tablas (`train_exercises`, `train_exercise_detail`, `trainer_clients`, `custom_users`, `history_exercises`)
