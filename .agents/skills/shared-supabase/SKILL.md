@@ -111,6 +111,21 @@ Ambas apps (`fitness-app` y `fitness-web`) se conectan al **mismo proyecto Supab
 | `clientId` | UUID | FK → custom_users(id) |
 | `createdAt` | TIMESTAMPTZ | |
 
+### `public.user_device_tokens` (Tokens para Push Notifications)
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | UUID PK | `gen_random_uuid()` |
+| `user_id` | UUID | FK → auth.users(id) ON DELETE CASCADE. **NOT NULL** |
+| `expo_push_token` | VARCHAR | NOT NULL |
+| `platform` | VARCHAR | `'ios'` \| `'android'` \| `'web'` |
+| `device_info` | JSONB | Almacena marca, modelo, OS y versión |
+| `active` | BOOLEAN | DEFAULT true |
+| `created_at` | TIMESTAMPTZ | DEFAULT NOW() |
+| `updated_at` | TIMESTAMPTZ | DEFAULT NOW() |
+
+> **UNIQUE CONSTRAINT:** `(user_id, expo_push_token)`
+> **RLS Policy:** Permite a los usuarios gestionar únicamente sus propios tokens (`auth.uid() = user_id`).
+
 ---
 
 ## RLS (Row Level Security)
@@ -157,3 +172,9 @@ El campo `reps` de `train_exercise_detail` **permanece como INTEGER** (progreso 
 
 ### Supabase client singleton
 Ambos proyectos crean un único cliente con `createClient(url, anonKey)`. No crear múltiples instancias.
+
+### Sistema de Push Notifications
+- **Tabla:** `user_device_tokens` almacena los tokens de Expo asociados a cada `auth.users(id)`.
+- **Trigger SQL:** `on_routine_status_active` en la tabla `train`. Se dispara `AFTER INSERT OR UPDATE OF status` cuando el `status` es `'Activa'`.
+- **Webhook (pg_net):** El trigger utiliza `net.http_post` para invocar asíncronamente la Edge Function `notify-routine-status`.
+- **Edge Function:** `notify-routine-status` consulta los tokens activos del usuario y envía la notificación push a la API de Expo (`https://exp.host/--/api/v2/push/send`), discriminando en el título y cuerpo si es una rutina nueva (INSERT) o actualizada (UPDATE).

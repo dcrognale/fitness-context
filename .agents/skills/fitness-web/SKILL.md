@@ -86,8 +86,9 @@ fitness-web/
 │   └── theme/                      # Tokens de tema MUI
 └── supabase/
     ├── functions/
-    │   └── invite-user/        # Edge Function: invita usuario por email
-    │   └── create-client/      # Edge Function: crea auth.users + custom_users + trainer_clients (password '1234')
+    │   ├── invite-user/        # Edge Function: invita usuario por email
+    │   ├── create-client/      # Edge Function: crea auth.users + custom_users + trainer_clients (password '1234')
+    │   └── notify-routine-status/ # Edge Function: envía notificaciones push a Expo
     └── migrations/
         ├── 001_trainer_system.sql
         ├── 002_admin_rpc_functions.sql
@@ -105,7 +106,9 @@ fitness-web/
         ├── 014_fix_trainer_update_client.sql # Fix COALESCE en update client
         ├── 015_exercises_per_trainer.sql   # Ownership de ejercicios + RLS
         ├── 016_muscles_table.sql           # Tabla muscles (Pecho, Espalda, etc.)
-        └── 017_replace_muscle_with_muscle_id.sql # FK exercises -> muscles
+        ├── 017_replace_muscle_with_muscle_id.sql # FK exercises -> muscles
+        ├── 022_user_device_tokens.sql      # Tabla user_device_tokens para Expo Push Tokens
+        └── 023_notify_routine_trigger.sql  # Trigger en tabla train para invocar notify-routine-status
 ```
 
 ## Autenticación y Perfil
@@ -263,6 +266,7 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 - **Warm-Up por día:** Bloque de texto libre con auto-resize textarea, botón "Agregar Warm Up" y confirmación al descartar
 - **Inputs de medición:** Sets (1 dígito), Reps (2 dígitos) para ejercicios tipo Reps; campo único de 4 dígitos para Mts/Cal
 - Al editar rutina existente, se cargan los datos de warm-up desde filas marcadoras (`exerciseId = NULL`)
+- **Notificaciones Push:** Al crear o actualizar una rutina con `status = 'Activa'` desde el panel web, un trigger en la base de datos (`on_routine_status_active`) invoca automáticamente la Edge Function `notify-routine-status` para enviar una notificación push al dispositivo móvil del alumno.
 
 ### RoutinePlannerPage
 - Vista semanal de una rutina

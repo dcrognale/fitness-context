@@ -26,6 +26,8 @@ description: >
 | expo-secure-store | ^55.0.9 | Almacenamiento seguro (tokens auth) |
 | react-native-reanimated | ~4.1.1 | Animaciones |
 | react-native-youtube-iframe | ^2.4.1 | Preview videos ejercicios |
+| expo-notifications | ~0.28.19 | Notificaciones Push |
+| expo-device | ~6.0.2 | Información de dispositivo |
 
 ## Comandos
 
@@ -67,7 +69,8 @@ fitness-app/
 │   ├── AuthContext.tsx          # Sesión Supabase, user, isLoading, signOut
 │   └── WorkoutContext.tsx       # Estado del entrenamiento activo en progreso
 ├── services/
-│   └── databaseService.ts      # TODAS las queries a Supabase (single file)
+│   ├── databaseService.ts      # TODAS las queries a Supabase (single file)
+│   └── notifications.ts        # Registro y handlers de Push Notifications
 ├── database/
 │   ├── schema.sql              # Schema inicial
 │   ├── trainExerciseDetail.sql # Migración add setNumber
@@ -132,7 +135,14 @@ Estado global del entrenamiento activo en progreso:
 - **Músculos:** Los ejercicios usan `muscle_id` (FK → `muscles`).
 - **Warm-up:** `getActiveRoutine()` retorna filas marcadoras de warm-up (`exerciseId = NULL`, `warm_up = <texto>`). El componente `train.tsx` las separa de los ejercicios reales antes de renderizar.
 - **Progreso:** `getRoutineProgress()` excluye filas marcadoras de warm-up con `.not('exerciseId', 'is', null)`.
-- Siempre importar desde este archivo, no crear nuevos service files en la app mobile.
+- Siempre importar desde este archivo, no crear nuevos service files en la app mobile (excepto servicios independientes como `notifications.ts`).
+
+## Notificaciones Push (Expo Notifications)
+
+- **Archivo:** `services/notifications.ts`
+- **Registro:** `registerForPushNotifications()` solicita permisos y obtiene el Expo Push Token usando `Constants.expoConfig` para asegurar compatibilidad en entornos EAS o locales. El token se guarda en Supabase en la tabla `user_device_tokens`.
+- **Navegación:** `setupNotificationHandlers(router)` intercepta cuando el usuario toca una notificación push y navega dinámicamente al detalle de la rutina mediante `router.push('/routine/${data.routine_id}')`.
+- **Inicialización:** Se invoca automáticamente en `app/_layout.tsx` (`RootLayoutNav`) cuando se detecta una sesión activa (`session`).
 
 ## Variables de Entorno
 
@@ -162,3 +172,5 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 > ⚠️ No usar `service_role` key en ningún punto del cliente mobile.
 >
 > ⚠️ **Warm-up:** Las filas de warm-up en `train_exercises` tienen `exerciseId = NULL`. Siempre filtrarlas de la lista de ejercicios reales y no incluirlas en el tracking de progreso.
+>
+> ⚠️ **Push Notifications:** Las notificaciones push de Expo **solo funcionan en dispositivos físicos**. Los simuladores de iOS y emuladores de Android no pueden registrar tokens de push válidos.
