@@ -33,7 +33,7 @@ When rendering specific types of workout blocks or timeline items, use the follo
 - **WARMUP:** Red (Rojo) - e.g. `#d32f2f` or `error.main`
 - **EMOM:** Blue (Azul) - e.g. `#1976d2` or `primary.main`
 - **AMRAP:** Yellow (Amarillo) - e.g. `#fbc02d` or similar high-contrast yellow
-- **POWER:** Light Gray (Gris claro) - e.g. `#e0e0e0` or `#9e9e9e`
+- **POWER:** Light Gray (Gris claro) - e.g. `#8A8A8A` or `#9e9e9e`
 - **TABATA:** Purple (Violeta) - e.g. `#9c27b0` or `secondary.main`
 - **SEMANAS (Weeks):** Green (Verde) - e.g. `#2e7d32` or `success.main`
 
